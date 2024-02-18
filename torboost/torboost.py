@@ -45,7 +45,8 @@ class TorBoost:
         if 'Bootstrapped ' in line:
             logger.info(line)
 
-    def request(self, headers, socks_port):
+    def request(self, url, headers, socks_port):
+        # Method definition updated to accept a 'url' parameter
         headers.update({
             'User-Agent': self.args.user_agent
         })
@@ -53,11 +54,18 @@ class TorBoost:
             'http': f'socks5h://localhost:{socks_port}',
             'https': f'socks5h://localhost:{socks_port}',
         }
-        return requests.get(self.args.url, headers=headers, proxies=proxies, stream=True)
+        return requests.get(url, headers=headers, proxies=proxies, stream=True)
 
     def worker(self):
         name = threading.current_thread().name
         while True:
+            chunk, proc_no = self.queue.get()
+            if self.args.mirrors:
+                urls = [self.args.url] + self.args.mirrors
+                url = urls[proc_no % len(urls)]
+            else:
+                url = self.args.url
+
             chunk, proc_no = self.queue.get()
             output = self.output_dir / f'{chunk[0]}-{chunk[1]}.chunk'
             expected_size = chunk[1] - chunk[0] + 1
@@ -190,6 +198,7 @@ def entry_point():
     parser.add_argument('--debug', action='store_const', dest='loglevel', const=logging.DEBUG, default=logging.INFO, help='Enable debugging mode (verbose output)')
     parser.add_argument('--combine', action='store_true', help='Combine all chunks downloaded so far')
     parser.add_argument('--reset', action='store_true', help='Remove data directories and rebuild circuits')
+    parser.add_argument('--mirrors', nargs='*', help='List of mirror URLs for downloading file chunks')
     parser.add_argument('-v', '--version', action='version', version=__version__)
     args = parser.parse_args()
     logger.setLevel(args.loglevel)
