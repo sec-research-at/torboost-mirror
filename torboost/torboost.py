@@ -80,13 +80,13 @@ class TorBoost:
             logger.debug(f'Worker [{name}] is requesting chunk {chunk}')
             failed = False
             try:
-                response = self.request(headers, socks_port)
+                response = self.request(url, headers, socks_port)  # Updated to include 'url'
                 logger.debug(f'Response headers for {chunk}: {response.headers}')
             except requests.exceptions.ConnectionError:
                 logger.debug(f'Worker [{name}] failed on connect, putting chunk {chunk} back to the queue')
                 failed = True
             else:
-                logger.info(f'Worker [{name}] is downloading chunk {chunk}')
+                logger.info(f'Worker [{name}] is downloading chunk {chunk} from URI: {url}')
                 try:
                     with open(str(output), 'wb') as fil:
                         fil.write(response.raw.read())
@@ -216,7 +216,7 @@ def entry_point():
     logger.info(f'Starting download...')
     # NOTE: Do NOT use HEAD here, leads to inconsistent results
     try:
-        response = boost.request({'Accept-Encoding': 'identity'}, boost.procs[0]['SocksPort'])
+        response = boost.request(boost.args.url, {'Accept-Encoding': 'identity'}, boost.procs[0]['SocksPort'])
     except RuntimeError:
         logger.error(f'Download could not be started, no response from the server')
     else:
