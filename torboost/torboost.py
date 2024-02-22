@@ -8,7 +8,7 @@ import queue
 import shutil
 import threading
 import urllib3.exceptions
-
+import random
 import requests
 import stem.process
 from stem.util import system
@@ -54,7 +54,7 @@ class TorBoost:
             'http': f'socks5h://localhost:{socks_port}',
             'https': f'socks5h://localhost:{socks_port}',
         }
-        return requests.get(url, headers=headers, proxies=proxies, stream=True)
+        return requests.get(url, headers=headers, proxies=proxies, stream=True, verify=False)
 
     def worker(self):
         name = threading.current_thread().name
@@ -62,7 +62,8 @@ class TorBoost:
             chunk, proc_no = self.queue.get()
             if self.args.mirrors:
                 urls = [self.args.url] + self.args.mirrors
-                url = urls[proc_no % len(urls)]
+                url = random.choice(urls)  # Selecting a URL randomly
+                logger.debug(f'Worker [{name}] chose mirror: {url}')
             else:
                 url = self.args.url
 
